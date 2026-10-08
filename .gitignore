@@ -1,0 +1,24 @@
+# 依赖
+node_modules/
+
+# 打包产物
+dist/
+out/
+release/
+
+# 本机生成的快捷方式（含本机绝对路径，npm run launcher 重新生成）
+*.lnk
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

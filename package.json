@@ -1,0 +1,17 @@
+{
+  "name": "edgelet",
+  "version": "0.1.0",
+  "description": "贴边自动隐藏的快捷启动小组件",
+  "main": "main.js",
+  "private": true,
+  "license": "MIT",
+  "author": "luylin5",
+  "scripts": {
+    "start": "electron .",
+    "icon": "electron scripts/build-icon.js",
+    "launcher": "node scripts/make-launcher.js"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0"
+  }
+}

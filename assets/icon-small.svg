@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- 16–32px 用的简化版：格子更少更大，去掉阴影，小尺寸下也清晰 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5C7CFF"/>
+      <stop offset="1" stop-color="#8445F0"/>
+    </linearGradient>
+    <clipPath id="clip"><rect x="0" y="0" width="256" height="256" rx="58"/></clipPath>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="58" fill="url(#bg)"/>
+  <g clip-path="url(#clip)">
+    <rect x="96" y="44" width="200" height="168" rx="30" fill="#fff"/>
+    <rect x="122" y="70" width="48" height="48" rx="13" fill="#FF6B6B"/>
+    <rect x="186" y="70" width="48" height="48" rx="13" fill="#FFB547"/>
+    <rect x="122" y="138" width="48" height="48" rx="13" fill="#4DA3FF"/>
+    <rect x="186" y="138" width="48" height="48" rx="13" fill="#3DD68C"/>
+  </g>
+  <rect x="34" y="84" width="22" height="88" rx="11" fill="#fff" fill-opacity="0.9"/>
+</svg>

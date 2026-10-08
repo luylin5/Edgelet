@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5C7CFF"/>
+      <stop offset="0.55" stop-color="#6A5CFA"/>
+      <stop offset="1" stop-color="#8E45F0"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.26"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="drawer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF0FF"/>
+    </linearGradient>
+    <clipPath id="clip"><rect x="8" y="8" width="240" height="240" rx="56"/></clipPath>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="-6" dy="10" stdDeviation="10" flood-color="#2B1680" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- 底板 -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#gloss)"/>
+
+  <g clip-path="url(#clip)">
+    <!-- 从右侧边缘抽出的抽屉面板 -->
+    <rect x="92" y="50" width="200" height="156" rx="28" fill="url(#drawer)" filter="url(#shadow)"/>
+    <!-- 3 × 3 的彩色应用格子 -->
+    <g>
+      <rect x="114" y="72" width="30" height="30" rx="9" fill="#FF6B6B"/>
+      <rect x="156" y="72" width="30" height="30" rx="9" fill="#FFB547"/>
+      <rect x="198" y="72" width="30" height="30" rx="9" fill="#3DD68C"/>
+      <rect x="114" y="113" width="30" height="30" rx="9" fill="#4DA3FF"/>
+      <rect x="156" y="113" width="30" height="30" rx="9" fill="#A78BFA"/>
+      <rect x="198" y="113" width="30" height="30" rx="9" fill="#FF7AC6"/>
+      <rect x="114" y="154" width="30" height="30" rx="9" fill="#2DD4BF"/>
+      <rect x="156" y="154" width="30" height="30" rx="9" fill="#FACC15"/>
+      <rect x="198" y="154" width="30" height="30" rx="9" fill="#60A5FA"/>
+    </g>
+  </g>
+
+  <!-- 收起时的边缘把手 -->
+  <rect x="46" y="94" width="13" height="68" rx="6.5" fill="#fff" fill-opacity="0.85"/>
+</svg>
