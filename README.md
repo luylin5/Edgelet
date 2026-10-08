@@ -5,7 +5,11 @@
 <h1 align="center">Edgelet</h1>
 
 <p align="center">
-  贴在屏幕边缘、用时滑出、不用时自动隐藏的 Windows 快捷启动面板
+  An app launcher for Windows that docks to the screen edge, slides out when you need it, and hides when you don't.
+</p>
+
+<p align="center">
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -16,39 +20,41 @@
 
 ---
 
-Windows 11 去掉了任务栏「工具栏 / 快速启动」，桌面图标又经常被窗口挡住。Edgelet 把常用的软件、文件和文件夹收进一个小抽屉，藏在屏幕边缘：鼠标碰到边缘或者按下快捷键，它就滑出来；点开一个程序，它又自己收回去。
+Windows 11 removed the taskbar toolbars and Quick Launch, and desktop icons are usually buried under windows. Edgelet keeps your favorite apps, files and folders in a small drawer tucked into the edge of the screen. Touch the edge or press a hotkey and it slides out; launch something and it tucks itself away again.
 
 <p align="center">
-  <img src="docs/panel.png" height="300" alt="面板">
+  <img src="docs/panel.png" height="300" alt="Panel">
   &nbsp;&nbsp;
-  <img src="docs/icon-picker.png" height="300" alt="更换图标">
+  <img src="docs/icon-picker.png" height="300" alt="Icon picker">
   &nbsp;&nbsp;
-  <img src="docs/layout-strip.png" height="300" alt="竖条布局">
+  <img src="docs/layout-strip.png" height="300" alt="Strip layout">
 </p>
 
-## 功能
+> The interface is currently in Chinese. Menu names below are given as *English (中文)*.
 
-- **贴边隐藏**：拖动到任意位置，松手后自动吸附到最近的屏幕边缘，收起后只留一条细把手；支持多显示器
-- **多种呼出方式**：鼠标移到边缘、全局快捷键 `` Alt+` ``，或单击托盘图标
-- **拖进来就能用**：从资源管理器或桌面把软件、快捷方式、文件、文件夹拖进面板即可添加，拖动图标调整顺序
-- **原生图标**：显示文件在资源管理器里的高清系统图标（256px），不是内容预览
-- **自定义名称和图标**：在面板里重命名（不改动真实文件），从 50 个预制图标中挑选，或者用自己的图片
-- **预制布局**：竖条 1×6、紧凑 2×4、标准 3×4、方阵 4×4、大面板 4×6；图标大小可选小 / 中 / 大，名称可隐藏；贴上下边时自动横向排列
-- **键盘操作**：方向键选择、`Enter` 打开、`F2` 重命名、`Esc` 收起
-- **其他**：以管理员身份运行、打开文件所在位置、开机启动、跟随系统深色 / 浅色模式
+## Features
 
-## 下载
+- **Edge docking**: drag the panel anywhere and it snaps to the nearest screen edge; when hidden, only a thin handle remains. Multi-monitor aware.
+- **Several ways to open it**: hover the screen edge, press the global hotkey `` Alt+` ``, or click the tray icon
+- **Drag and drop**: drop apps, shortcuts, files or folders from Explorer or the desktop onto the panel; drag tiles to reorder
+- **Native icons**: shows the same high-resolution (256px) icon Explorer uses, not a content thumbnail
+- **Custom names and icons**: rename items inside the panel (the real file is untouched), pick from 50 built-in icons, or use your own image
+- **Layout presets**: strip 1×6, compact 2×4, standard 3×4, square 4×4, large 4×6; small / medium / large icons; optional labels. Rows and columns swap automatically on the top and bottom edges.
+- **Keyboard**: arrow keys to move, `Enter` to open, `F2` to rename, `Esc` to hide
+- **Also**: run as administrator, open file location, start with Windows, follows the system light / dark theme
 
-到 [Releases](https://github.com/luylin5/Edgelet/releases/latest) 下载最新版本：
+## Download
 
-- **`Edgelet-Setup-x.y.z.exe`**：安装版，会创建桌面和开始菜单快捷方式，可在「设置 → 应用」里卸载
-- **`Edgelet-x.y.z-portable.exe`**：便携版，双击即用，不需要安装
+Get the latest version from [Releases](https://github.com/luylin5/Edgelet/releases/latest):
 
-> 程序没有代码签名，首次运行时 Windows SmartScreen 可能提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」即可。
+- **`Edgelet-Setup-x.y.z.exe`**: installer; creates desktop and Start menu shortcuts and can be uninstalled from *Settings → Apps*
+- **`Edgelet-x.y.z-portable.exe`**: portable; just double-click, no installation
 
-## 从源码运行
+> The app is not code-signed, so Windows SmartScreen may show "Windows protected your PC" on first launch. Click **More info → Run anyway**.
 
-需要 [Node.js](https://nodejs.org/) 18 或更高版本，仅支持 Windows。
+## Run from source
+
+Requires [Node.js](https://nodejs.org/) 18 or later. Windows only.
 
 ```bash
 git clone https://github.com/luylin5/Edgelet.git
@@ -57,63 +63,63 @@ npm install
 npm start
 ```
 
-### 创建桌面快捷方式
+### Create desktop shortcuts
 
 ```bash
 npm run launcher
 ```
 
-会在项目目录、桌面和开始菜单各放一个「Edgelet」快捷方式，双击启动，不弹命令行窗口。移动项目文件夹后需要重新运行一次。
+Puts an "Edgelet" shortcut in the project folder, on the desktop and in the Start menu. It launches the app without a console window. Run it again if you move the project folder.
 
-## 使用
+## Usage
 
-| 操作 | 方法 |
+| Action | How |
 | --- | --- |
-| 添加 | 拖入文件，或右上角 `⋯` →「添加文件或软件…」/「添加文件夹…」 |
-| 移动位置 | 按住标题栏拖动，松手自动贴边 |
-| 呼出 / 收起 | 鼠标移到边缘把手 · `` Alt+` `` · 托盘图标 · `Esc` |
-| 重命名 | 右键图标 →「重命名」，或选中后按 `F2` |
-| 更换图标 | 右键图标 →「更换图标…」 |
-| 恢复默认 | 右键图标 →「恢复默认名称和图标」 |
-| 布局 / 图标大小 / 显示名称 | 右键面板空白处，或托盘菜单 |
-| 固定显示 | 取消勾选「自动隐藏」 |
+| Add items | Drop files onto the panel, or `⋯` → *Add file or app (添加文件或软件…)* / *Add folder (添加文件夹…)* |
+| Move | Drag the title bar; it snaps to the nearest edge on release |
+| Show / hide | Hover the edge handle · `` Alt+` `` · tray icon · `Esc` |
+| Rename | Right-click a tile → *Rename (重命名)*, or select it and press `F2` |
+| Change icon | Right-click a tile → *Change icon (更换图标…)* |
+| Reset | Right-click a tile → *Restore default name and icon (恢复默认名称和图标)* |
+| Layout / icon size / labels | Right-click an empty area of the panel, or use the tray menu |
+| Keep it visible | Uncheck *Auto-hide (自动隐藏)* |
 
-## 配置
+## Configuration
 
-配置保存在 `%APPDATA%\edgelet\config.json`：
+Settings are stored in `%APPDATA%\edgelet\config.json`:
 
-| 字段 | 说明 | 默认值 |
+| Key | Description | Default |
 | --- | --- | --- |
-| `hotkey` | 全局快捷键，[Electron 加速键格式](https://www.electronjs.org/docs/latest/api/accelerator)，如 `Ctrl+Alt+Space` | `` Alt+` `` |
+| `hotkey` | Global hotkey in [Electron accelerator format](https://www.electronjs.org/docs/latest/api/accelerator), e.g. `Ctrl+Alt+Space` | `` Alt+` `` |
 | `layout` | `strip` / `compact` / `standard` / `square` / `large` | `standard` |
 | `iconSize` | `small` / `medium` / `large` | `medium` |
-| `showLabels` | 是否显示名称 | `true` |
-| `autoHide` | 是否自动隐藏 | `true` |
+| `showLabels` | Show item names | `true` |
+| `autoHide` | Hide automatically | `true` |
 
-修改 `hotkey` 后需要重启程序，其余选项都可以直接在菜单里切换。
+Restart the app after changing `hotkey`. Everything else can be switched from the menus.
 
-## 项目结构
+## Project structure
 
 ```
-main.js                 主进程：窗口、贴边吸附、悬停检测、快捷键、托盘、配置
-preload.js              主进程与界面之间的接口
-renderer/               面板界面（HTML / CSS / JS）
-  presets.js            预制图标库（SVG 生成）
-helpers/file-icons.ps1  读取 256px 系统图标
-assets/                 程序图标源文件（SVG）和生成的 .ico / .png
+main.js                 Main process: window, edge snapping, hover detection, hotkey, tray, config
+preload.js              Bridge between the main process and the UI
+renderer/               Panel UI (HTML / CSS / JS)
+  presets.js            Built-in icon library (generated SVG)
+helpers/file-icons.ps1  Reads 256px system icons
+assets/                 App icon sources (SVG) and generated .ico / .png
 scripts/
-  build-icon.js         由 SVG 生成 icon.ico（npm run icon）
-  make-launcher.js      创建快捷方式（npm run launcher）
+  build-icon.js         Builds icon.ico from the SVGs (npm run icon)
+  make-launcher.js      Creates shortcuts (npm run launcher)
 ```
 
-### 打包
+### Build
 
 ```bash
 npm run dist
 ```
 
-在 `dist/` 里生成安装版和便携版 exe。
+Produces the installer and the portable exe in `dist/`.
 
-## 许可证
+## License
 
 [MIT](LICENSE)
