@@ -282,7 +282,8 @@ const iconCache = new Map();
 // 图标取的是文件在资源管理器里的系统图标（不是内容预览），由 helpers/file-icons.ps1 提取 256px 版本，
 // 结果按「路径 + 修改时间 + 大小」缓存到磁盘，只有新加入或变动的文件才会重新提取。
 const ICON_DIR = path.join(app.getPath('userData'), 'icon-cache');
-const ICON_HELPER = path.join(__dirname, 'helpers', 'file-icons.ps1');
+// 打包后 helpers 被解包到 app.asar.unpacked，PowerShell 读不了 asar 里的文件
+const ICON_HELPER = path.join(__dirname, 'helpers', 'file-icons.ps1').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 let iconQueue = Promise.resolve();
 
 function iconKey(p) {

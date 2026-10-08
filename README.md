@@ -37,7 +37,16 @@ Windows 11 去掉了任务栏「工具栏 / 快速启动」，桌面图标又经
 - **键盘操作**：方向键选择、`Enter` 打开、`F2` 重命名、`Esc` 收起
 - **其他**：以管理员身份运行、打开文件所在位置、开机启动、跟随系统深色 / 浅色模式
 
-## 快速开始
+## 下载
+
+到 [Releases](https://github.com/luylin5/Edgelet/releases/latest) 下载最新版本：
+
+- **`Edgelet-Setup-x.y.z.exe`**：安装版，会创建桌面和开始菜单快捷方式，可在「设置 → 应用」里卸载
+- **`Edgelet-x.y.z-portable.exe`**：便携版，双击即用，不需要安装
+
+> 程序没有代码签名，首次运行时 Windows SmartScreen 可能提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」即可。
+
+## 从源码运行
 
 需要 [Node.js](https://nodejs.org/) 18 或更高版本，仅支持 Windows。
 
@@ -96,6 +105,14 @@ scripts/
   build-icon.js         由 SVG 生成 icon.ico（npm run icon）
   make-launcher.js      创建快捷方式（npm run launcher）
 ```
+
+### 打包
+
+```bash
+npm run dist
+```
+
+在 `dist/` 里生成安装版和便携版 exe。
 
 ## 许可证
 

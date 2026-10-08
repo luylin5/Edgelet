@@ -6,12 +6,54 @@
   "private": true,
   "license": "MIT",
   "author": "luylin5",
+  "repository": "github:luylin5/Edgelet",
   "scripts": {
     "start": "electron .",
     "icon": "electron scripts/build-icon.js",
-    "launcher": "node scripts/make-launcher.js"
+    "launcher": "node scripts/make-launcher.js",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "io.github.luylin5.edgelet",
+    "productName": "Edgelet",
+    "copyright": "Copyright © 2026 luylin5",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "helpers/**",
+      "assets/icon.ico",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "helpers/**"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Edgelet",
+      "artifactName": "Edgelet-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Edgelet-${version}-portable.${ext}"
+    },
+    "publish": null
   },
   "devDependencies": {
-    "electron": "^44.7.0"
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
   }
 }
