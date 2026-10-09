@@ -1,6 +1,6 @@
 const {
   app, BrowserWindow, ipcMain, screen, shell,
-  Menu, Tray, globalShortcut, dialog,
+  Menu, Tray, globalShortcut, dialog, clipboard, Notification,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -19,6 +19,12 @@ const KEEP = 10;        // 展开后，鼠标离开面板多少像素内仍保�
 const POLL_MS = 60;
 const SHOW_DELAY = 120; // 鼠标在边缘停留多久才弹出，避免误触
 const HIDE_DELAY = 380;
+const MEMO_W = 248;     // 面板最小尺寸（备忘页放得下），启动页和备忘页共用同一尺寸，切换时不改窗口大小
+const MEMO_H = 420;
+const MEMO_MAX = 500;   // 单条备忘最多字数
+const REMIND_POLL_MS = 20000;
+const DAY_REMIND = '09:00';        // 只有日期没有时间的备忘，当天这个时间统一提醒
+const MISSED_MS = 6 * 3600 * 1000; // 错过超过这么久（比如关机了）就不再补发提醒
 
 // ---- 配置 ----
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
@@ -32,6 +38,9 @@ const DEFAULTS = {
   layout: 'standard',   // 见 LAYOUTS
   iconSize: 'medium',   // small | medium | large
   showLabels: true,
+  view: 'apps',         // apps | memo，顶部滑块切换
+  memos: [],            // [{ id, text, done, createdAt, doneAt, due: { date, time } | null, reminded }]
+  remind: true,         // 备忘到点提醒
 };
 
 // 预制布局：列 × 行（贴左右边时；贴上下边时自动转置）
@@ -78,8 +87,10 @@ function layoutFor(edge) {
   // 贴上下边时行列互换，让面板沿着边缘展开
   const cols = v ? preset.cols : preset.rows;
   const rows = v ? preset.rows : preset.cols;
-  const pw = Math.max(cols * cell + PAD * 2, 104); // 至少放得下标题栏
-  const ph = rows * cell + HEADER + PAD;
+  let pw = Math.max(cols * cell + PAD * 2, 104); // 至少放得下标题栏
+  let ph = rows * cell + HEADER + PAD;
+  pw = Math.max(pw, MEMO_W);
+  ph = Math.max(ph, MEMO_H);
   const ww = v ? pw + MARGIN : pw + MARGIN * 2;
   const wh = v ? ph + MARGIN * 2 : ph + MARGIN;
   const ox = edge === 'left' ? 0 : MARGIN;
@@ -219,6 +230,7 @@ function tick() {
 }
 
 function toggleByHotkey() {
+  if (!win) return;
   if (expanded && (hotkeyHold || win.isFocused()) && cfg.autoHide) {
     setExpanded(false);
   } else {
@@ -266,6 +278,8 @@ function createWindow() {
   win.on('blur', () => {
     if (hotkeyHold && !busy && !uiHold) setExpanded(false);
   });
+  // 退出时窗口先销毁，定时器还可能再跑一次；置空后各处的 if (!win) 就能拦住
+  win.on('closed', () => { win = null; });
 
   win.once('ready-to-show', () => {
     applyPlacement();
@@ -373,6 +387,8 @@ async function buildState() {
     expanded,
     autoHide: cfg.autoHide,
     hotkey: cfg.hotkey,
+    view: cfg.view,
+    memos: cfg.memos,
   };
 }
 
@@ -425,7 +441,8 @@ async function pickIconFile(id) {
 
 async function pushState() {
   if (!win) return;
-  win.webContents.send('state', await buildState());
+  const s = await buildState();
+  if (win) win.webContents.send('state', s); // 等待期间窗口可能已关闭
 }
 
 function addPaths(paths) {
@@ -438,6 +455,119 @@ function addPaths(paths) {
     added++;
   }
   if (added) { saveConfig(); pushState(); }
+}
+
+// ---- 备忘 ----
+const memoText = (t) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, MEMO_MAX);
+
+function updateMemo(id, fn) {
+  const m = cfg.memos.find((x) => x.id === id);
+  if (!m) return;
+  fn(m);
+  saveConfig();
+  pushState();
+}
+
+function setMemoDone(m, done) {
+  m.done = done;
+  m.doneAt = done ? Date.now() : null;
+}
+
+// 日期都按本地时间的字符串存（YYYY-MM-DD / HH:MM），避免时区换算出错
+function cleanDue(d) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return null;
+  const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(d.time) ? d.time : null;
+  return { date: d.date, time };
+}
+
+const dueKey = (m) => `${m.due.date} ${m.due.time || ''}`;
+
+function remindAt(m) {
+  const [y, mo, d] = m.due.date.split('-').map(Number);
+  const [h, mi] = (m.due.time || DAY_REMIND).split(':').map(Number);
+  return new Date(y, mo - 1, d, h, mi).getTime();
+}
+
+function setMemoDue(m, due) {
+  m.due = cleanDue(due);
+  delete m.reminded;
+  // 设成已经过去的时间就不再提醒，只在列表里标成过期
+  if (m.due && remindAt(m) <= Date.now()) m.reminded = dueKey(m);
+}
+
+const APP_ID = 'io.github.luylin5.edgelet'; // 与 package.json 的 build.appId 一致
+
+// Windows 通知顶部的名称和图标取自开始菜单里带同一 AppUserModelID 的快捷方式。
+// 安装版由安装程序创建；开发运行和便携版没有，这里补一个，否则通知会显示成「Electron」。
+function ensureNotificationShortcut() {
+  if (process.platform !== 'win32') return;
+  const portable = process.env.PORTABLE_EXECUTABLE_FILE; // electron-builder 便携版提供
+  if (app.isPackaged && !portable) return;
+  const folder = portable ? 'Edgelet Portable' : 'Edgelet Dev';
+  const lnk = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', folder, 'Edgelet.lnk');
+  const target = portable || process.execPath;
+  const args = portable ? '' : `"${path.resolve(app.getAppPath())}"`;
+  // 便携版每次运行解压到不同的临时目录，图标直接取 exe 本身
+  const opts = { target, args, appUserModelId: APP_ID, icon: portable || APP_ICON, iconIndex: 0, description: 'Edgelet' };
+  try {
+    const cur = shell.readShortcutLink(lnk);
+    if (cur.target === target && cur.args === args && cur.appUserModelId === APP_ID) return;
+  } catch { /* 还没有快捷方式 */ }
+  try {
+    fs.mkdirSync(path.dirname(lnk), { recursive: true });
+    shell.writeShortcutLink(lnk, fs.existsSync(lnk) ? 'replace' : 'create', opts);
+  } catch { /* 写不了也不影响通知弹出，只是名称不对 */ }
+}
+
+const notices = new Set(); // 保留引用，否则通知被回收后点击无效
+
+function notify(title, body) {
+  if (!Notification.isSupported()) return;
+  const n = new Notification({ title, body, icon: APP_ICON });
+  n.on('click', () => {
+    setView('memo');
+    hotkeyHold = cfg.autoHide;
+    setExpanded(true, { focus: true });
+  });
+  n.on('close', () => notices.delete(n));
+  notices.add(n);
+  n.show();
+}
+
+function checkReminders() {
+  if (!cfg.remind || !win) return;
+  const now = Date.now();
+  const timed = [];
+  const daily = [];
+  let changed = false;
+  for (const m of cfg.memos) {
+    if (m.done || !m.due || m.reminded === dueKey(m)) continue;
+    const at = remindAt(m);
+    if (at > now) continue;
+    m.reminded = dueKey(m);
+    changed = true;
+    if (now - at <= MISSED_MS) (m.due.time ? timed : daily).push(m);
+  }
+  if (!changed) return;
+  saveConfig();
+  for (const m of timed) notify(`备忘提醒 · ${m.due.time}`, m.text);
+  if (daily.length) notify(`今天有 ${daily.length} 件待办`, daily.map((m) => `· ${m.text}`).join('\n'));
+  const ids = [...timed, ...daily].map((m) => m.id);
+  if (ids.length) win.webContents.send('reminder', ids);
+}
+
+function removeMemos(pred) {
+  cfg.memos = cfg.memos.filter((m) => !pred(m));
+  saveConfig();
+  pushState();
+}
+
+function setView(view) {
+  if (view !== 'apps' && view !== 'memo') return;
+  if (cfg.view === view) return;
+  cfg.view = view;
+  saveConfig();
+  pushState(); // 尺寸不变；渲染层自己切页时这次推送不会引起变化，主要给通知点击用
 }
 
 function toast(msg) {
@@ -576,8 +706,57 @@ ipcMain.on('hold', (_e, on) => {
   if (uiHold) win.focus();
 });
 ipcMain.on('hide', () => { if (cfg.autoHide) setExpanded(false); });
+ipcMain.on('set-view', (_e, view) => setView(view));
+ipcMain.on('memo-add', (_e, memo) => {
+  const text = memoText(memo?.text);
+  const id = String(memo?.id || '').slice(0, 16) || Math.random().toString(36).slice(2, 10);
+  if (!text || cfg.memos.some((m) => m.id === id)) return;
+  const m = { id, text, done: false, createdAt: Date.now(), doneAt: null };
+  setMemoDue(m, memo.due);
+  cfg.memos.push(m);
+  saveConfig();
+  pushState();
+});
+ipcMain.on('memo-update', (_e, id, patch) => updateMemo(id, (m) => {
+  if (typeof patch?.done === 'boolean' && patch.done !== m.done) setMemoDone(m, patch.done);
+  const text = patch?.text !== undefined && memoText(patch.text);
+  if (text) m.text = text;
+  if (patch && 'due' in patch) setMemoDue(m, patch.due);
+}));
+ipcMain.on('memo-remove', (_e, id) => removeMemos((m) => m.id === id));
 ipcMain.on('menu', (_e, ctx) => {
-  if (ctx?.type === 'item') {
+  if (ctx?.type === 'input') {
+    popup([
+      { label: '剪切', role: 'cut' },
+      { label: '复制', role: 'copy' },
+      { label: '粘贴', role: 'paste' },
+      { type: 'separator' },
+      { label: '全选', role: 'selectAll' },
+    ]);
+  } else if (ctx?.type === 'memo') {
+    const m = cfg.memos.find((x) => x.id === ctx.id);
+    if (!m) return;
+    // 日期由渲染层计算（和输入识别共用一套规则）
+    const date = (key) => () => win.webContents.send('memo-date', m.id, key);
+    popup([
+      { label: m.done ? '标记为未完成' : '完成', click: () => updateMemo(m.id, (x) => setMemoDone(x, !x.done)) },
+      { label: '编辑', click: () => win.webContents.send('begin-memo-edit', m.id) },
+      {
+        label: '日期',
+        submenu: [
+          { label: '今天', click: date('today') },
+          { label: '明天', click: date('tomorrow') },
+          { label: '本周末', click: date('weekend') },
+          { label: '下周一', click: date('nextweek') },
+          { label: '选择日期和时间…', click: date('pick') },
+          ...(m.due ? [{ type: 'separator' }, { label: '清除日期', click: date('clear') }] : []),
+        ],
+      },
+      { label: '复制文字', click: () => clipboard.writeText(m.text) },
+      { type: 'separator' },
+      { label: '删除', click: () => removeMemos((x) => x.id === m.id) },
+    ]);
+  } else if (ctx?.type === 'item') {
     const item = cfg.items.find((i) => i.id === ctx.id);
     if (!item) return;
     const runnable = /\.(exe|lnk|bat|cmd|msc)$/i.test(item.path);
@@ -603,6 +782,24 @@ ipcMain.on('menu', (_e, ctx) => {
         },
       },
     ]);
+  } else if (cfg.view === 'memo') {
+    const doneCount = cfg.memos.filter((m) => m.done).length;
+    popup([
+      { label: `清除已完成（${doneCount}）`, enabled: doneCount > 0, click: () => removeMemos((m) => m.done) },
+      {
+        label: '到点提醒',
+        type: 'checkbox',
+        checked: cfg.remind,
+        click: (mi) => {
+          cfg.remind = mi.checked;
+          // 重新打开时不补发关闭期间错过的提醒
+          if (cfg.remind) for (const x of cfg.memos) if (x.due && remindAt(x) <= Date.now()) x.reminded = dueKey(x);
+          saveConfig();
+        },
+      },
+      { type: 'separator' },
+      ...commonMenuItems(),
+    ]);
   } else {
     popup([
       { label: '添加文件或软件…', click: () => pickAndAdd(false) },
@@ -622,8 +819,13 @@ if (!app.requestSingleInstanceLock()) {
     setExpanded(true, { focus: true });
   });
 
+  if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
+
   app.whenReady().then(() => {
+    ensureNotificationShortcut();
     createWindow();
+    win.webContents.once('did-finish-load', checkReminders);
+    setInterval(checkReminders, REMIND_POLL_MS);
     tray = new Tray(APP_ICON);
     tray.on('click', toggleByHotkey);
     rebuildTray();

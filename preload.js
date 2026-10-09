@@ -16,5 +16,12 @@ contextBridge.exposeInMainWorld('edgelet', {
   hold: (on) => ipcRenderer.send('hold', on),
   onBeginRename: (cb) => ipcRenderer.on('begin-rename', (_e, id) => cb(id)),
   onOpenIconPicker: (cb) => ipcRenderer.on('open-icon-picker', (_e, id) => cb(id)),
+  setView: (view) => ipcRenderer.send('set-view', view),
+  memoAdd: (memo) => ipcRenderer.send('memo-add', memo),
+  memoUpdate: (id, patch) => ipcRenderer.send('memo-update', id, patch),
+  memoRemove: (id) => ipcRenderer.send('memo-remove', id),
+  onBeginMemoEdit: (cb) => ipcRenderer.on('begin-memo-edit', (_e, id) => cb(id)),
+  onMemoDate: (cb) => ipcRenderer.on('memo-date', (_e, id, key) => cb(id, key)),
+  onReminder: (cb) => ipcRenderer.on('reminder', (_e, ids) => cb(ids)),
   pathForFile: (file) => webUtils.getPathForFile(file),
 });
