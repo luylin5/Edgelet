@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { spawn, execFile } = require('child_process');
 
 const APP_ICON = path.join(__dirname, 'assets', 'icon.ico');
+const I18N = require('./renderer/i18n.js');
 
 // ---- 尺寸与交互参数（单位：DIP） ----
 const PAD = 12;         // 面板内边距
@@ -41,24 +42,29 @@ const DEFAULTS = {
   view: 'apps',         // apps | memo，顶部滑块切换
   memos: [],            // [{ id, text, done, createdAt, doneAt, due: { date, time } | null, reminded }]
   remind: true,         // 备忘到点提醒
+  lang: 'auto',         // auto | zh | en，auto 时跟随系统语言
 };
 
 // 预制布局：列 × 行（贴左右边时；贴上下边时自动转置）
 const LAYOUTS = [
-  { id: 'strip', label: '竖条 1 × 6', cols: 1, rows: 6 },
-  { id: 'compact', label: '紧凑 2 × 4', cols: 2, rows: 4 },
-  { id: 'standard', label: '标准 3 × 4', cols: 3, rows: 4 },
-  { id: 'square', label: '方阵 4 × 4', cols: 4, rows: 4 },
-  { id: 'large', label: '大面板 4 × 6', cols: 4, rows: 6 },
+  { id: 'strip', cols: 1, rows: 6 },
+  { id: 'compact', cols: 2, rows: 4 },
+  { id: 'standard', cols: 3, rows: 4 },
+  { id: 'square', cols: 4, rows: 4 },
+  { id: 'large', cols: 4, rows: 6 },
 ];
 const ICON_SIZES = [
-  { id: 'small', label: '小', icon: 30, cell: 64, bare: 48 },
-  { id: 'medium', label: '中', icon: 38, cell: 78, bare: 58 },
-  { id: 'large', label: '大', icon: 48, cell: 92, bare: 70 },
+  { id: 'small', icon: 30, cell: 64, bare: 48 },
+  { id: 'medium', icon: 38, cell: 78, bare: 58 },
+  { id: 'large', icon: 48, cell: 92, bare: 70 },
 ];
 
 let cfg = loadConfig();
 let saveTimer = null;
+
+// 界面语言：设置为 auto 时按系统语言（app.getLocale 需在 ready 之后才准确）
+const uiLang = () => I18N.resolve(cfg.lang, app.isReady() ? app.getLocale() : '');
+const t = (key, ...args) => I18N.make(uiLang())(key, ...args);
 
 function loadConfig() {
   try {
@@ -387,6 +393,7 @@ async function buildState() {
     expanded,
     autoHide: cfg.autoHide,
     hotkey: cfg.hotkey,
+    lang: uiLang(),
     view: cfg.view,
     memos: cfg.memos,
   };
@@ -420,9 +427,9 @@ async function pickIconFile(id) {
   busy = true;
   try {
     const r = await dialog.showOpenDialog(win, {
-      title: '选择图标图片',
+      title: t('dlg.pickIcon'),
       properties: ['openFile'],
-      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'ico', 'svg', 'webp', 'gif', 'bmp'] }],
+      filters: [{ name: t('dlg.images'), extensions: ['png', 'jpg', 'jpeg', 'ico', 'svg', 'webp', 'gif', 'bmp'] }],
     });
     if (r.canceled || !r.filePaths[0]) return;
     const src = r.filePaths[0];
@@ -550,8 +557,8 @@ function checkReminders() {
   }
   if (!changed) return;
   saveConfig();
-  for (const m of timed) notify(`备忘提醒 · ${m.due.time}`, m.text);
-  if (daily.length) notify(`今天有 ${daily.length} 件待办`, daily.map((m) => `· ${m.text}`).join('\n'));
+  for (const m of timed) notify(t('notify.timed', m.due.time), m.text);
+  if (daily.length) notify(t('notify.daily', daily.length), daily.map((m) => `· ${m.text}`).join('\n'));
   const ids = [...timed, ...daily].map((m) => m.id);
   if (ids.length) win.webContents.send('reminder', ids);
 }
@@ -576,7 +583,7 @@ function toast(msg) {
 
 async function launch(item) {
   const err = await shell.openPath(item.path);
-  if (err) { toast(`无法打开：${err}`); return; }
+  if (err) { toast(t('toast.openFailed', err)); return; }
   if (cfg.autoHide) setTimeout(() => setExpanded(false), 150);
 }
 
@@ -593,7 +600,7 @@ async function pickAndAdd(folder) {
   busy = true;
   try {
     const r = await dialog.showOpenDialog(win, {
-      title: folder ? '添加文件夹' : '添加文件或软件',
+      title: folder ? t('dlg.addFolder') : t('dlg.addFile'),
       properties: folder ? ['openDirectory', 'multiSelections'] : ['openFile', 'multiSelections'],
     });
     if (!r.canceled) addPaths(r.filePaths);
@@ -611,6 +618,19 @@ function isOpenAtLogin() {
 }
 function setOpenAtLogin(on) {
   app.setLoginItemSettings({ openAtLogin: on, path: process.execPath, args: loginArgs() });
+}
+
+let hotkeyOk = true;
+function updateTrayTip() {
+  tray?.setToolTip(hotkeyOk ? t('tray.tip', cfg.hotkey) : t('tray.tipBusy', cfg.hotkey));
+}
+
+function setLang(lang) {
+  cfg.lang = lang;
+  saveConfig();
+  rebuildTray();
+  updateTrayTip();
+  pushState();
 }
 
 function setAutoHide(on) {
@@ -631,24 +651,30 @@ function setLayoutOption(key, value) {
 function commonMenuItems() {
   return [
     {
-      label: '布局',
+      label: t('menu.layout'),
       submenu: LAYOUTS.map((l) => ({
-        label: l.label, type: 'radio', checked: cfg.layout === l.id, click: () => setLayoutOption('layout', l.id),
+        label: t(`layout.${l.id}`), type: 'radio', checked: cfg.layout === l.id, click: () => setLayoutOption('layout', l.id),
       })),
     },
     {
-      label: '图标大小',
+      label: t('menu.iconSize'),
       submenu: ICON_SIZES.map((z) => ({
-        label: z.label, type: 'radio', checked: cfg.iconSize === z.id, click: () => setLayoutOption('iconSize', z.id),
+        label: t(`size.${z.id}`), type: 'radio', checked: cfg.iconSize === z.id, click: () => setLayoutOption('iconSize', z.id),
       })),
     },
-    { label: '显示名称', type: 'checkbox', checked: cfg.showLabels, click: (mi) => setLayoutOption('showLabels', mi.checked) },
+    { label: t('menu.showLabels'), type: 'checkbox', checked: cfg.showLabels, click: (mi) => setLayoutOption('showLabels', mi.checked) },
     { type: 'separator' },
-    { label: '自动隐藏', type: 'checkbox', checked: cfg.autoHide, click: (mi) => setAutoHide(mi.checked) },
-    { label: '开机启动', type: 'checkbox', checked: isOpenAtLogin(), click: (mi) => setOpenAtLogin(mi.checked) },
-    { label: '打开配置文件夹', click: () => shell.openPath(path.dirname(CONFIG_PATH)) },
+    { label: t('menu.autoHide'), type: 'checkbox', checked: cfg.autoHide, click: (mi) => setAutoHide(mi.checked) },
+    { label: t('menu.openAtLogin'), type: 'checkbox', checked: isOpenAtLogin(), click: (mi) => setOpenAtLogin(mi.checked) },
+    {
+      label: t('menu.language'),
+      submenu: [['auto', t('lang.auto')], ['zh', '中文'], ['en', 'English']].map(([id, label]) => ({
+        label, type: 'radio', checked: (cfg.lang || 'auto') === id, click: () => setLang(id),
+      })),
+    },
+    { label: t('menu.openConfig'), click: () => shell.openPath(path.dirname(CONFIG_PATH)) },
     { type: 'separator' },
-    { label: '退出 Edgelet', click: () => app.quit() },
+    { label: t('menu.quit'), click: () => app.quit() },
   ];
 }
 
@@ -664,8 +690,8 @@ function popup(template) {
 function rebuildTray() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: `显示面板\t${cfg.hotkey}`, click: () => { hotkeyHold = cfg.autoHide; setExpanded(true, { focus: true }); } },
-    { label: '添加文件或软件…', click: () => pickAndAdd(false) },
+    { label: t('tray.show', cfg.hotkey), click: () => { hotkeyHold = cfg.autoHide; setExpanded(true, { focus: true }); } },
+    { label: t('menu.addFile'), click: () => pickAndAdd(false) },
     { type: 'separator' },
     ...commonMenuItems(),
   ]));
@@ -675,7 +701,8 @@ function registerHotkey() {
   globalShortcut.unregisterAll();
   let ok = false;
   try { ok = globalShortcut.register(cfg.hotkey, toggleByHotkey); } catch { ok = false; }
-  tray?.setToolTip(ok ? `Edgelet（${cfg.hotkey} 呼出）` : `Edgelet（快捷键 ${cfg.hotkey} 被占用）`);
+  hotkeyOk = ok;
+  updateTrayTip();
 }
 
 // ---- IPC ----
@@ -727,11 +754,11 @@ ipcMain.on('memo-remove', (_e, id) => removeMemos((m) => m.id === id));
 ipcMain.on('menu', (_e, ctx) => {
   if (ctx?.type === 'input') {
     popup([
-      { label: '剪切', role: 'cut' },
-      { label: '复制', role: 'copy' },
-      { label: '粘贴', role: 'paste' },
+      { label: t('edit.cut'), role: 'cut' },
+      { label: t('edit.copy'), role: 'copy' },
+      { label: t('edit.paste'), role: 'paste' },
       { type: 'separator' },
-      { label: '全选', role: 'selectAll' },
+      { label: t('edit.selectAll'), role: 'selectAll' },
     ]);
   } else if (ctx?.type === 'memo') {
     const m = cfg.memos.find((x) => x.id === ctx.id);
@@ -739,41 +766,41 @@ ipcMain.on('menu', (_e, ctx) => {
     // 日期由渲染层计算（和输入识别共用一套规则）
     const date = (key) => () => win.webContents.send('memo-date', m.id, key);
     popup([
-      { label: m.done ? '标记为未完成' : '完成', click: () => updateMemo(m.id, (x) => setMemoDone(x, !x.done)) },
-      { label: '编辑', click: () => win.webContents.send('begin-memo-edit', m.id) },
+      { label: m.done ? t('memo.uncomplete') : t('memo.complete'), click: () => updateMemo(m.id, (x) => setMemoDone(x, !x.done)) },
+      { label: t('memo.edit'), click: () => win.webContents.send('begin-memo-edit', m.id) },
       {
-        label: '日期',
+        label: t('memo.date'),
         submenu: [
-          { label: '今天', click: date('today') },
-          { label: '明天', click: date('tomorrow') },
-          { label: '本周末', click: date('weekend') },
-          { label: '下周一', click: date('nextweek') },
-          { label: '选择日期和时间…', click: date('pick') },
-          ...(m.due ? [{ type: 'separator' }, { label: '清除日期', click: date('clear') }] : []),
+          { label: t('date.today'), click: date('today') },
+          { label: t('date.tomorrow'), click: date('tomorrow') },
+          { label: t('date.weekend'), click: date('weekend') },
+          { label: t('date.nextweek'), click: date('nextweek') },
+          { label: t('date.pick'), click: date('pick') },
+          ...(m.due ? [{ type: 'separator' }, { label: t('date.clear'), click: date('clear') }] : []),
         ],
       },
-      { label: '复制文字', click: () => clipboard.writeText(m.text) },
+      { label: t('memo.copy'), click: () => clipboard.writeText(m.text) },
       { type: 'separator' },
-      { label: '删除', click: () => removeMemos((x) => x.id === m.id) },
+      { label: t('memo.delete'), click: () => removeMemos((x) => x.id === m.id) },
     ]);
   } else if (ctx?.type === 'item') {
     const item = cfg.items.find((i) => i.id === ctx.id);
     if (!item) return;
     const runnable = /\.(exe|lnk|bat|cmd|msc)$/i.test(item.path);
     popup([
-      { label: '打开', click: () => launch(item) },
-      ...(runnable ? [{ label: '以管理员身份运行', click: () => runAsAdmin(item.path) }] : []),
-      { label: '打开文件所在位置', click: () => shell.showItemInFolder(item.path) },
+      { label: t('item.open'), click: () => launch(item) },
+      ...(runnable ? [{ label: t('item.runAdmin'), click: () => runAsAdmin(item.path) }] : []),
+      { label: t('item.showInFolder'), click: () => shell.showItemInFolder(item.path) },
       { type: 'separator' },
-      { label: '重命名', click: () => win.webContents.send('begin-rename', item.id) },
-      { label: '更换图标…', click: () => win.webContents.send('open-icon-picker', item.id) },
+      { label: t('item.rename'), click: () => win.webContents.send('begin-rename', item.id) },
+      { label: t('item.changeIcon'), click: () => win.webContents.send('open-icon-picker', item.id) },
       ...(item.name || item.iconPreset || item.iconFile ? [{
-        label: '恢复默认名称和图标',
+        label: t('item.reset'),
         click: () => updateItem(item.id, (it) => { delete it.name; delete it.iconPreset; removeCustomIconFile(it); }),
       }] : []),
       { type: 'separator' },
       {
-        label: '从面板移除',
+        label: t('item.remove'),
         click: () => {
           removeCustomIconFile(item);
           cfg.items = cfg.items.filter((i) => i.id !== item.id);
@@ -785,9 +812,9 @@ ipcMain.on('menu', (_e, ctx) => {
   } else if (cfg.view === 'memo') {
     const doneCount = cfg.memos.filter((m) => m.done).length;
     popup([
-      { label: `清除已完成（${doneCount}）`, enabled: doneCount > 0, click: () => removeMemos((m) => m.done) },
+      { label: t('memo.clearDone', doneCount), enabled: doneCount > 0, click: () => removeMemos((m) => m.done) },
       {
-        label: '到点提醒',
+        label: t('memo.remind'),
         type: 'checkbox',
         checked: cfg.remind,
         click: (mi) => {
@@ -802,8 +829,8 @@ ipcMain.on('menu', (_e, ctx) => {
     ]);
   } else {
     popup([
-      { label: '添加文件或软件…', click: () => pickAndAdd(false) },
-      { label: '添加文件夹…', click: () => pickAndAdd(true) },
+      { label: t('menu.addFile'), click: () => pickAndAdd(false) },
+      { label: t('menu.addFolder'), click: () => pickAndAdd(true) },
       { type: 'separator' },
       ...commonMenuItems(),
     ]);

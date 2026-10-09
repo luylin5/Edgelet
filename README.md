@@ -23,14 +23,14 @@
 Windows 11 removed the taskbar toolbars and Quick Launch, and desktop icons are usually buried under windows. Edgelet keeps your favorite apps, files and folders in a small drawer tucked into the edge of the screen. Touch the edge or press a hotkey and it slides out; launch something and it tucks itself away again.
 
 <p align="center">
-  <img src="docs/panel.png" height="300" alt="Panel">
-  &nbsp;&nbsp;
-  <img src="docs/icon-picker.png" height="300" alt="Icon picker">
-  &nbsp;&nbsp;
-  <img src="docs/layout-strip.png" height="300" alt="Strip layout">
+  <img src="docs/en/panel.png" height="300" alt="Launcher">
+  &nbsp;
+  <img src="docs/en/memo.png" height="300" alt="Memos">
+  &nbsp;
+  <img src="docs/en/date-picker.png" height="300" alt="Date and time picker">
+  &nbsp;
+  <img src="docs/en/icon-picker.png" height="300" alt="Icon picker">
 </p>
-
-> The interface is currently in Chinese. Menu names below are given as *English (中文)*.
 
 ## Features
 
@@ -41,7 +41,8 @@ Windows 11 removed the taskbar toolbars and Quick Launch, and desktop icons are 
 - **Custom names and icons**: rename items inside the panel (the real file is untouched), pick from 50 built-in icons, or use your own image
 - **Layout presets**: strip 1×6, compact 2×4, standard 3×4, square 4×4, large 4×6; small / medium / large icons; optional labels. Rows and columns swap automatically on the top and bottom edges.
 - **Memos**: a slider at the top switches to a to-do page; type at the bottom and press Enter to add, click to complete; grouped into overdue / today / tomorrow / later / no date
-- **Dates and reminders**: dates are recognized from Chinese phrases such as 明天 (tomorrow), 周五下午3点 (Friday 3 pm) or `10/15`; or pick one with quick buttons or a calendar with a time wheel; a system notification pops up when it's due
+- **Dates and reminders**: dates are recognized as you type, e.g. `tomorrow`, `fri 3pm`, `next tuesday`, `oct 15`, `in 3 days` (Chinese phrases such as 明天 or 周五下午3点 work too); or pick one with quick buttons or a calendar with a time wheel; a system notification pops up when it's due
+- **English and Chinese**: the interface follows the system language and can be switched any time under *Language / 语言*
 - **Keyboard**: arrow keys to move, `Enter` to open, `F2` to rename, `Esc` to hide
 - **Also**: run as administrator, open file location, start with Windows, follows the system light / dark theme
 
@@ -77,20 +78,21 @@ Puts an "Edgelet" shortcut in the project folder, on the desktop and in the Star
 
 | Action | How |
 | --- | --- |
-| Add items | Drop files onto the panel, or `⋯` → *Add file or app (添加文件或软件…)* / *Add folder (添加文件夹…)* |
+| Add items | Drop files onto the panel, or `⋯` → *Add file or app…* / *Add folder…* |
 | Move | Drag the title bar; it snaps to the nearest edge on release |
 | Show / hide | Hover the edge handle · `` Alt+` `` · tray icon · `Esc` |
-| Rename | Right-click a tile → *Rename (重命名)*, or select it and press `F2` |
-| Change icon | Right-click a tile → *Change icon (更换图标…)* |
-| Reset | Right-click a tile → *Restore default name and icon (恢复默认名称和图标)* |
+| Rename | Right-click a tile → *Rename*, or select it and press `F2` |
+| Change icon | Right-click a tile → *Change icon…* |
+| Reset | Right-click a tile → *Restore default name and icon* |
 | Layout / icon size / labels | Right-click an empty area of the panel, or use the tray menu |
-| Keep it visible | Uncheck *Auto-hide (自动隐藏)* |
+| Keep it visible | Uncheck *Auto-hide* |
 | Switch to memos | Click the checklist icon on the right of the top slider |
-| Add a memo | Type in the bottom box and press `Enter`; phrases like 明天 or 周五下午3点 set the date automatically |
+| Add a memo | Type in the bottom box and press `Enter`; phrases like `tomorrow` or `fri 3pm` set the date automatically |
 | Complete / restore | Click a memo; completed ones are collected at the bottom |
-| Set a date | Quick buttons or the calendar icon above the input, or right-click a memo → *Date (日期)*; double-click the time wheel to type a time |
+| Set a date | Quick buttons or the calendar icon above the input, or right-click a memo → *Date*; double-click the time wheel to type a time |
 | Edit / delete | Right-click a memo, or select it and press `F2` / `Delete` |
-| Turn off reminders | Right-click an empty area of the memo page and uncheck *Reminders (到点提醒)* |
+| Turn off reminders | Right-click an empty area of the memo page and uncheck *Reminders* |
+| Language | Right-click an empty area of the panel, or the tray icon → *Language / 语言* |
 
 ## Configuration
 
@@ -104,6 +106,7 @@ Settings are stored in `%APPDATA%\edgelet\config.json`:
 | `showLabels` | Show item names | `true` |
 | `autoHide` | Hide automatically | `true` |
 | `remind` | Memo reminders (date-only memos are reminded at 09:00 that day) | `true` |
+| `lang` | Interface language: `auto` (follow the system) / `en` / `zh` | `auto` |
 
 Restart the app after changing `hotkey`. Everything else can be switched from the menus.
 
@@ -113,6 +116,7 @@ Restart the app after changing `hotkey`. Everything else can be switched from th
 main.js                 Main process: window, edge snapping, hover detection, hotkey, tray, config
 preload.js              Bridge between the main process and the UI
 renderer/               Panel UI (HTML / CSS / JS)
+  i18n.js               Interface text in English and Chinese
   presets.js            Built-in icon library (generated SVG)
   dates.js              Memo date recognition and formatting
 helpers/file-icons.ps1  Reads 256px system icons

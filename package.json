@@ -1,6 +1,6 @@
 {
   "name": "edgelet",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "贴边自动隐藏的快捷启动小组件",
   "main": "main.js",
   "private": true,

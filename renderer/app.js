@@ -13,6 +13,36 @@ let editing = null;       // 正在重命名的条目 id
 let pendingState = null;  // 编辑期间收到的新状态，结束后再渲染
 const lastLaunch = new Map();
 
+// ---- 界面语言：由主进程在状态里给出（zh / en），切换后重新填写所有文字 ----
+const I18N = window.EdgeletI18n;
+let lang = null;
+let tr = I18N.make('zh');
+const pick2 = (pair) => (Array.isArray(pair) ? pair[lang === 'en' ? 1 : 0] : pair); // 预制图标的 [中文, English] 名称
+
+function applyLang(l) {
+  lang = l;
+  tr = I18N.make(l);
+  window.EdgeletDates.setLang(l);
+  document.documentElement.lang = l === 'en' ? 'en' : 'zh-CN';
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    const v = tr(el.dataset.i18n);
+    if (v.includes('<')) el.innerHTML = v; else el.textContent = v;
+  }
+  for (const el of document.querySelectorAll('[data-i18n-title]')) {
+    const v = tr(el.dataset.i18nTitle);
+    el.title = v;
+    el.setAttribute('aria-label', v);
+  }
+  for (const el of document.querySelectorAll('[data-i18n-ph]')) el.placeholder = tr(el.dataset.i18nPh);
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', tr(el.dataset.i18nAria));
+  document.getElementById('cal-week').replaceChildren(...window.EdgeletDates.weekHeads().map((w) => {
+    const span = document.createElement('span');
+    span.textContent = w;
+    return span;
+  }));
+  renderDueRow();
+}
+
 // 面板内可能同时有多处要求保持展开（重命名、选图标、输入备忘、选日期），全部结束才放开
 const holds = new Set();
 let held = false;
@@ -27,6 +57,7 @@ const iconSrc = (item) => (item.iconPreset && window.EdgeletPresets.url(item.ico
 function render(s) {
   if (editing) { pendingState = s; return; }
   state = s;
+  if (s.lang !== lang) applyLang(s.lang);
   const L = s.layout;
   body.dataset.edge = s.edge;
   body.dataset.view = s.view;
@@ -74,7 +105,7 @@ function tileFor(item) {
   btn.className = 'tile' + (item.missing ? ' missing' : '');
   btn.dataset.id = item.id;
   btn.draggable = true;
-  btn.title = `${item.name}\n${item.path}${item.missing ? '\n（文件已不存在）' : ''}`;
+  btn.title = `${item.name}\n${item.path}${item.missing ? `\n${tr('tile.missing')}` : ''}`;
 
   let icon;
   const src = iconSrc(item);
@@ -265,29 +296,29 @@ function openPicker(id) {
   const item = state?.items.find((i) => i.id === id);
   if (!item || editing) return;
   setHold('picker', true);
-  document.getElementById('picker-title').textContent = `更换图标 · ${item.name}`;
+  document.getElementById('picker-title').textContent = tr('picker.titleFor', item.name);
   pickerBody.replaceChildren();
 
   const choose = (presetId) => () => { api.setIcon(id, presetId); closePicker(); };
-  section('当前文件', [
+  section(tr('picker.current'), [
     choiceButton({
-      title: '系统图标（默认）',
+      title: tr('picker.system'),
       src: item.icon,
       selected: !item.iconPreset && !item.customIcon,
       onPick: choose(null),
     }),
     ...(item.customIcon ? [choiceButton({
-      title: '自定义图片', src: item.customIcon, selected: !item.iconPreset, onPick: closePicker,
+      title: tr('picker.custom'), src: item.customIcon, selected: !item.iconPreset, onPick: closePicker,
     })] : []),
     choiceButton({
-      title: '从图片文件选择…',
+      title: tr('picker.upload'),
       upload: true,
       onPick: () => { closePicker(); api.pickIconFile(id); },
     }),
   ]);
   for (const group of window.EdgeletPresets.groups) {
-    section(group.title, group.items.map((p) => choiceButton({
-      title: p.name, src: p.url, selected: item.iconPreset === p.id, onPick: choose(p.id),
+    section(pick2(group.title), group.items.map((p) => choiceButton({
+      title: pick2(p.name), src: p.url, selected: item.iconPreset === p.id, onPick: choose(p.id),
     })));
   }
   picker.hidden = false;
@@ -340,18 +371,6 @@ const CAL_SVG = '<svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" heigh
 const X_SVG = '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
 const cleanText = (t) => t.replace(/\s+/g, ' ').trim();
 
-function dayLabel(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
-  if (days === 0) return '今天';
-  if (days === 1) return '昨天';
-  const md = `${d.getMonth() + 1}/${d.getDate()}`;
-  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}/${md}`;
-}
-const fullTime = (ts) => new Date(ts).toLocaleString('zh-CN', {
-  month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-});
 
 // 短暂高亮几条备忘（新加的、刚改了日期的、刚提醒的）
 function flash(ids, ms = 1400) {
@@ -365,7 +384,7 @@ function flash(ids, ms = 1400) {
 }
 
 // 待办从顶部开始排，按日期分组：已过期 → 今天 → 明天 → 以后 → 无日期；组内从新到旧
-const GROUPS = [['overdue', '已过期'], ['today', '今天'], ['tomorrow', '明天'], ['later', '以后'], ['none', '无日期']];
+const GROUPS = ['overdue', 'today', 'tomorrow', 'later', 'none'];
 const newestFirst = (a, b) => b.createdAt - a.createdAt;
 
 function renderMemos() {
@@ -379,20 +398,20 @@ function renderMemos() {
   if (!state.memos.length) {
     const empty = document.createElement('div');
     empty.className = 'memo-empty';
-    empty.innerHTML = '还没有备忘<br>在下方输入，回车添加<br><small>写上「明天」「周五下午3点」会自动设日期</small>';
+    empty.innerHTML = tr('memo.empty');
     memoList.append(empty);
   }
 
-  const groups = Object.fromEntries(GROUPS.map(([k]) => [k, []]));
+  const groups = Object.fromEntries(GROUPS.map((k) => [k, []]));
   for (const m of active) groups[m.due ? D.status(m.due) : 'none'].push(m);
   const dated = active.some((m) => m.due); // 都没有日期时不显示分组标题
-  for (const [key, title] of GROUPS) {
+  for (const key of GROUPS) {
     const list = groups[key];
     if (!list.length) continue;
     if (dated) {
       const h = document.createElement('div');
       h.className = `memo-group ${key}`;
-      h.textContent = `${title} ${list.length}`;
+      h.textContent = `${tr(`group.${key}`)} ${list.length}`;
       memoList.append(h);
     }
     for (const m of list) memoList.append(memoItem(m, key));
@@ -403,7 +422,7 @@ function renderMemos() {
     const head = document.createElement('button');
     head.className = 'done-head' + (showDone ? ' open' : '');
     head.innerHTML = CHEVRON_SVG;
-    head.append(`已完成 ${done.length}`);
+    head.append(tr('memo.doneHead', done.length));
     head.addEventListener('click', () => {
       showDone = !showDone;
       try { localStorage.setItem('memo.showDone', showDone ? '1' : '0'); } catch { /* 忽略 */ }
@@ -428,8 +447,11 @@ function memoItem(m, group) {
   el.tabIndex = 0;
   el.setAttribute('role', 'checkbox');
   el.setAttribute('aria-checked', String(m.done));
-  el.title = (m.due ? `日期：${D.full(m.due)}\n` : '') + `创建于 ${fullTime(m.createdAt)}`
-    + (m.done ? `\n完成于 ${fullTime(m.doneAt)}` : '');
+  el.title = [
+    m.due && tr('tip.due', D.full(m.due)),
+    tr('tip.created', D.timestamp(m.createdAt)),
+    m.done && tr('tip.completed', D.timestamp(m.doneAt)),
+  ].filter(Boolean).join('\n');
 
   const check = document.createElement('span');
   check.className = 'check';
@@ -441,7 +463,7 @@ function memoItem(m, group) {
   if (m.done) {
     const meta = document.createElement('span');
     meta.className = 'memo-meta';
-    meta.textContent = dayLabel(m.doneAt);
+    meta.textContent = D.stampLabel(m.doneAt);
     el.append(meta);
   } else if (m.due) {
     // 分组标题已经写了今天/明天，这两组只显示时间
@@ -501,7 +523,7 @@ const dueRow = document.getElementById('due-row');
 let draftDue = null;      // 用快捷按钮或日历手动选的日期，优先于文字识别
 let ignoreParse = false;  // 点了 × 关掉这次的自动识别
 const draftParse = () => (draftDue || ignoreParse ? null : D.parse(memoInput.value));
-const QUICK = [['today', '今天'], ['tomorrow', '明天'], ['weekend', '周末'], ['nextweek', '下周']];
+const QUICK = ['today', 'tomorrow', 'weekend', 'nextweek'];
 
 function chip(className, content, title, onClick) {
   const b = document.createElement('button');
@@ -515,7 +537,7 @@ function chip(className, content, title, onClick) {
 }
 
 function pickDraft(due) {
-  openDuePicker(due, '新备忘', (d) => {
+  openDuePicker(due, tr('due.newMemo'), (d) => {
     draftDue = d;
     ignoreParse = !d;
     renderDueRow();
@@ -528,19 +550,20 @@ function renderDueRow() {
   const due = draftDue || parsed?.due;
   dueRow.replaceChildren();
   if (due) {
-    const tip = `${D.full(due)}${due.time ? '\n到时间会提醒' : ''}${parsed ? '\n（从输入的文字中识别）' : ''}\n点击修改`;
+    const tip = [D.full(due), due.time && tr('pill.willRemind'), parsed && tr('pill.parsed'), tr('pill.clickToEdit')]
+      .filter(Boolean).join('\n');
     const pill = chip(`due-pill ${D.status(due)}${parsed ? ' parsed' : ''}`, CAL_SVG, tip, () => pickDraft(due));
     pill.append(D.label(due));
-    const x = chip('due-x', X_SVG, parsed ? '不识别日期，按原文保存' : '清除日期', () => {
+    const x = chip('due-x', X_SVG, parsed ? tr('pill.ignore') : tr('pill.clear'), () => {
       if (draftDue) draftDue = null; else ignoreParse = true;
       renderDueRow();
     });
     dueRow.append(pill, x);
   } else {
-    for (const [key, label] of QUICK) {
-      dueRow.append(chip('due-chip', label, D.full(D.quick(key)), () => { draftDue = D.quick(key); renderDueRow(); }));
+    for (const key of QUICK) {
+      dueRow.append(chip('due-chip', tr(`quick.${key}`), D.full(D.quick(key)), () => { draftDue = D.quick(key); renderDueRow(); }));
     }
-    dueRow.append(chip('due-chip icon', CAL_SVG, '选择日期和时间', () => pickDraft(null)));
+    dueRow.append(chip('due-chip icon', CAL_SVG, tr('pill.pick'), () => pickDraft(null)));
   }
 }
 
@@ -685,7 +708,9 @@ function onWheel() {
 const wheelInput = document.getElementById('wheel-input');
 
 function parseTyped(s) {
-  const v = s.replace(/\s+/g, '');
+  let v = s.replace(/\s+/g, '').toLowerCase();
+  const ap = v.match(/(am|pm|a\.m\.|p\.m\.)$/);
+  if (ap) v = v.slice(0, -ap[0].length);
   let m = v.match(/^(\d{1,2})(?:[:：.点](\d{1,2}|半)?分?)?$/);
   let h, min;
   if (m) {
@@ -696,6 +721,11 @@ function parseTyped(s) {
     min = +m[1].slice(-2);
   } else {
     return null;
+  }
+  if (ap) {
+    if (h < 1 || h > 12) return null;
+    if (ap[0].startsWith('p') && h < 12) h += 12;
+    if (ap[0].startsWith('a') && h === 12) h = 0;
   }
   return h <= 23 && min <= 59 ? `${pad2(h)}:${pad2(min)}` : null;
 }
@@ -749,7 +779,7 @@ function showTimeOnWheel(smooth) {
 function openDuePicker(due, title, onDone) {
   const base = due ? D.toDate(due.date) : D.startOfToday();
   pick = { date: due?.date || null, time: due?.time || null, month: new Date(base.getFullYear(), base.getMonth(), 1), onDone };
-  document.getElementById('due-head').title = `设置日期 · ${title}`;
+  document.getElementById('due-head').title = tr('due.headTitle', title);
   setHold('due', true);
   duePicker.hidden = false;
   renderCal();
@@ -769,7 +799,7 @@ function closeDuePicker() {
 function renderCal() {
   const { month } = pick;
   const today = D.ymd(D.startOfToday());
-  document.getElementById('cal-month').textContent = `${month.getFullYear()}年${month.getMonth() + 1}月`;
+  document.getElementById('cal-month').textContent = D.monthTitle(month);
   const lead = D.mondayIdx(month);
   const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const start = D.addDays(month, -lead);
@@ -800,12 +830,7 @@ function renderCal() {
 function renderTime() {
   // 滚轮上方显示当前选中的完整日期
   const dateEl = document.getElementById('due-date');
-  if (pick.date) {
-    const d = D.toDate(pick.date);
-    dateEl.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${D.WD_NAMES[D.mondayIdx(d)]}`;
-  } else {
-    dateEl.textContent = '未选择日期';
-  }
+  dateEl.textContent = pick.date ? D.long(pick.date) : tr('due.noDate');
   dateEl.classList.toggle('empty', !pick.date);
   dueWheel.classList.toggle('unset', !pick.time);
   const chip = (label, selected, onPick, title = '') => {
@@ -832,14 +857,14 @@ function renderTime() {
     }
   };
   document.getElementById('due-times').replaceChildren(
-    chip('不设时间', !pick.time, setTime(null)),
-    chip('现在', false, setNow, '设为当前时间'),
+    chip(tr('time.none'), !pick.time, setTime(null)),
+    chip(tr('time.now'), false, setNow, tr('time.nowTip')),
     ...TIMES.map((t) => chip(t, pick.time === t, setTime(t))),
   );
   const { time } = pick;
   document.getElementById('due-hint').textContent = pick.date
-    ? D.label({ date: pick.date, time }) + (time ? ' 提醒' : '')
-    : (time ? `${time} 提醒` : '');
+    ? tr('due.hint', D.label({ date: pick.date, time }), !!time)
+    : (time ? tr('due.hintTimeOnly', time) : '');
 }
 
 function confirmPick() {

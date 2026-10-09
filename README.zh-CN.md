@@ -23,11 +23,13 @@
 Windows 11 去掉了任务栏「工具栏 / 快速启动」，桌面图标又经常被窗口挡住。Edgelet 把常用的软件、文件和文件夹收进一个小抽屉，藏在屏幕边缘：鼠标碰到边缘或者按下快捷键，它就滑出来；点开一个程序，它又自己收回去。
 
 <p align="center">
-  <img src="docs/panel.png" height="300" alt="面板">
-  &nbsp;&nbsp;
-  <img src="docs/icon-picker.png" height="300" alt="更换图标">
-  &nbsp;&nbsp;
-  <img src="docs/layout-strip.png" height="300" alt="竖条布局">
+  <img src="docs/zh/panel.png" height="300" alt="启动页">
+  &nbsp;
+  <img src="docs/zh/memo.png" height="300" alt="备忘页">
+  &nbsp;
+  <img src="docs/zh/date-picker.png" height="300" alt="日期与时间">
+  &nbsp;
+  <img src="docs/zh/icon-picker.png" height="300" alt="更换图标">
 </p>
 
 ## 功能
@@ -39,7 +41,8 @@ Windows 11 去掉了任务栏「工具栏 / 快速启动」，桌面图标又经
 - **自定义名称和图标**：在面板里重命名（不改动真实文件），从 50 个预制图标中挑选，或者用自己的图片
 - **预制布局**：竖条 1×6、紧凑 2×4、标准 3×4、方阵 4×4、大面板 4×6；图标大小可选小 / 中 / 大，名称可隐藏；贴上下边时自动横向排列
 - **备忘录**：顶部滑块切换到备忘页，底部输入回车添加，单击完成；按 已过期 / 今天 / 明天 / 以后 / 无日期 分组
-- **日期与提醒**：输入「明天」「周五下午3点」「10/15」等自动识别日期；也可用快捷按钮或日历 + 时间滚轮选择；到点弹出系统通知
+- **日期与提醒**：输入「明天」「周五下午3点」「10/15」「3天后」等自动识别日期（英文的 `tomorrow`、`fri 3pm` 也认）；也可用快捷按钮或日历 + 时间滚轮选择；到点弹出系统通知
+- **中英双语**：界面默认跟随系统语言，可随时在「语言 / Language」里切换
 - **键盘操作**：方向键选择、`Enter` 打开、`F2` 重命名、`Esc` 收起
 - **其他**：以管理员身份运行、打开文件所在位置、开机启动、跟随系统深色 / 浅色模式
 
@@ -89,6 +92,7 @@ npm run launcher
 | 设置日期 | 输入框上方的快捷按钮或日历图标，或右键备忘 →「日期」；时间滚轮可双击直接输入 |
 | 编辑 / 删除 | 右键备忘，或选中后按 `F2` / `Delete` |
 | 关闭提醒 | 备忘页右键空白处，取消勾选「到点提醒」 |
+| 切换语言 | 右键面板空白处或托盘图标 →「语言 / Language」 |
 
 ## 配置
 
@@ -102,6 +106,7 @@ npm run launcher
 | `showLabels` | 是否显示名称 | `true` |
 | `autoHide` | 是否自动隐藏 | `true` |
 | `remind` | 备忘到点提醒（只有日期的备忘在当天 09:00 提醒） | `true` |
+| `lang` | 界面语言：`auto`（跟随系统）/ `zh` / `en` | `auto` |
 
 修改 `hotkey` 后需要重启程序，其余选项都可以直接在菜单里切换。
 
@@ -111,6 +116,7 @@ npm run launcher
 main.js                 主进程：窗口、贴边吸附、悬停检测、快捷键、托盘、配置
 preload.js              主进程与界面之间的接口
 renderer/               面板界面（HTML / CSS / JS）
+  i18n.js               界面文字（中文 / 英文）
   presets.js            预制图标库（SVG 生成）
   dates.js              备忘日期识别与显示格式
 helpers/file-icons.ps1  读取 256px 系统图标

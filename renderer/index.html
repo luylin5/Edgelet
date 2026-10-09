@@ -6,62 +6,67 @@
   <title>Edgelet</title>
   <link rel="stylesheet" href="style.css">
 </head>
+<!--
+  界面文字由 app.js 按语言填入：
+  data-i18n 填文字（含 <br> 的条目按 HTML 填），data-i18n-title 填 title 和 aria-label，
+  data-i18n-ph 填 placeholder，data-i18n-aria 只填 aria-label
+-->
 <body class="collapsed" data-edge="right" data-view="apps">
   <div id="handle"></div>
   <div id="panel">
     <header id="bar">
-      <div id="views" role="tablist" aria-label="切换页面">
+      <div id="views" role="tablist" data-i18n-aria="view.switch">
         <span class="thumb"></span>
-        <button data-view="apps" role="tab" title="启动" aria-label="启动">
+        <button data-view="apps" role="tab" data-i18n-title="view.apps">
           <svg viewBox="0 0 16 16" width="13" height="13"><rect x="2" y="2" width="5" height="5" rx="1.3"/><rect x="9" y="2" width="5" height="5" rx="1.3"/><rect x="2" y="9" width="5" height="5" rx="1.3"/><rect x="9" y="9" width="5" height="5" rx="1.3"/></svg>
         </button>
-        <button data-view="memo" role="tab" title="备忘" aria-label="备忘">
+        <button data-view="memo" role="tab" data-i18n-title="view.memo">
           <svg viewBox="0 0 16 16" width="13" height="13" class="stroke"><path d="M2.5 4.2l1.3 1.3 2.4-2.6M8.5 4.5h5M2.5 10.2l1.3 1.3 2.4-2.6M8.5 10.5h5"/></svg>
         </button>
       </div>
-      <button id="more" title="菜单" aria-label="菜单">
+      <button id="more" data-i18n-title="ui.menu">
         <svg viewBox="0 0 16 16" width="14" height="14"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>
       </button>
     </header>
     <div id="grid"></div>
-    <div id="empty">把软件、文件或文件夹<br>拖到这里</div>
+    <div id="empty" data-i18n="apps.empty"></div>
     <div id="memo">
       <div id="memo-list"></div>
       <form id="memo-form" autocomplete="off">
         <div id="due-row"></div>
-        <input id="memo-input" maxlength="500" placeholder="添加备忘，如「周五下午3点 开会」" spellcheck="false">
+        <input id="memo-input" maxlength="500" data-i18n-ph="memo.placeholder" spellcheck="false">
       </form>
       <div id="due-picker" hidden>
         <div class="picker-head cal-nav" id="due-head">
-          <button id="cal-prev" title="上个月" aria-label="上个月"><svg viewBox="0 0 10 10"><path d="M6.5 2l-3 3 3 3"/></svg></button>
+          <button id="cal-prev" data-i18n-title="cal.prev"><svg viewBox="0 0 10 10"><path d="M6.5 2l-3 3 3 3"/></svg></button>
           <span id="cal-month"></span>
-          <button id="cal-next" title="下个月" aria-label="下个月"><svg viewBox="0 0 10 10"><path d="M3.5 2l3 3-3 3"/></svg></button>
-          <button id="due-close" title="关闭" aria-label="关闭">
+          <button id="cal-next" data-i18n-title="cal.next"><svg viewBox="0 0 10 10"><path d="M3.5 2l3 3-3 3"/></svg></button>
+          <button id="due-close" data-i18n-title="ui.close">
             <svg viewBox="0 0 16 16" width="12" height="12"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
           </button>
         </div>
-        <div class="cal-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+        <div class="cal-week" id="cal-week"></div>
         <div id="cal-grid"></div>
         <div id="due-date"></div>
-        <div id="due-wheel" title="滚轮、拖动或方向键调整时间，双击直接输入">
-          <div class="wheel-col" id="wheel-h" tabindex="0" aria-label="小时"></div>
+        <div id="due-wheel" data-i18n-title="wheel.title">
+          <div class="wheel-col" id="wheel-h" tabindex="0" data-i18n-aria="wheel.hour"></div>
           <span class="wheel-sep">:</span>
-          <div class="wheel-col" id="wheel-m" tabindex="0" aria-label="分钟"></div>
-          <input id="wheel-input" hidden maxlength="8" placeholder="如 9:30" spellcheck="false" aria-label="输入时间">
+          <div class="wheel-col" id="wheel-m" tabindex="0" data-i18n-aria="wheel.minute"></div>
+          <input id="wheel-input" hidden maxlength="8" data-i18n-ph="wheel.placeholder" spellcheck="false" data-i18n-aria="wheel.input">
         </div>
         <div class="due-times" id="due-times"></div>
         <div class="due-foot">
           <span class="due-hint" id="due-hint"></span>
-          <button id="due-clear" class="ghost">清除</button>
-          <button id="due-ok" class="primary">确定</button>
+          <button id="due-clear" class="ghost" data-i18n="due.clear"></button>
+          <button id="due-ok" class="primary" data-i18n="due.ok"></button>
         </div>
       </div>
     </div>
-    <div id="drop-hint"><span>松开以添加</span></div>
+    <div id="drop-hint"><span data-i18n="apps.drop"></span></div>
     <div id="picker" hidden>
       <div class="picker-head">
-        <span id="picker-title">更换图标</span>
-        <button id="picker-close" title="关闭" aria-label="关闭">
+        <span id="picker-title" data-i18n="picker.title"></span>
+        <button id="picker-close" data-i18n-title="ui.close">
           <svg viewBox="0 0 16 16" width="12" height="12"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
         </button>
       </div>
@@ -69,6 +74,7 @@
     </div>
     <div id="toast"></div>
   </div>
+  <script src="i18n.js"></script>
   <script src="presets.js"></script>
   <script src="dates.js"></script>
   <script src="app.js"></script>

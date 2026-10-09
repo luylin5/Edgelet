@@ -87,37 +87,43 @@
     );
   }
 
+  // 名称都是 [中文, English]，显示时按界面语言取
   const groups = [
     {
-      title: '文件夹',
+      title: ['文件夹', 'Folders'],
       items: ['blue', 'sky', 'teal', 'green', 'yellow', 'orange', 'red', 'pink', 'purple', 'gray']
-        .map((c) => ({ id: `folder-${c}`, name: '文件夹', svg: folder(c) })),
+        .map((c) => ({ id: `folder-${c}`, name: ['文件夹', 'Folder'], svg: folder(c) })),
     },
     {
-      title: '带符号的文件夹',
+      title: ['带符号的文件夹', 'Folders with symbols'],
       items: [
-        ['doc', 'blue', '文档'], ['image', 'pink', '图片'], ['music', 'purple', '音乐'], ['video', 'red', '视频'],
-        ['download', 'teal', '下载'], ['code', 'slate', '代码'], ['briefcase', 'orange', '工作'], ['star', 'yellow', '收藏'],
-        ['heart', 'red', '喜欢'], ['cloud', 'sky', '云盘'], ['book', 'green', '学习'], ['game', 'indigo', '游戏'],
-      ].map(([g, c, name]) => ({ id: `folder-${g}`, name, svg: folder(c, g) })),
+        ['doc', 'blue', '文档', 'Documents'], ['image', 'pink', '图片', 'Pictures'], ['music', 'purple', '音乐', 'Music'],
+        ['video', 'red', '视频', 'Videos'], ['download', 'teal', '下载', 'Downloads'], ['code', 'slate', '代码', 'Code'],
+        ['briefcase', 'orange', '工作', 'Work'], ['star', 'yellow', '收藏', 'Favorites'], ['heart', 'red', '喜欢', 'Liked'],
+        ['cloud', 'sky', '云盘', 'Cloud drive'], ['book', 'green', '学习', 'Study'], ['game', 'indigo', '游戏', 'Games'],
+      ].map(([g, c, zh, en]) => ({ id: `folder-${g}`, name: [zh, en], svg: folder(c, g) })),
     },
     {
-      title: '文件',
+      title: ['文件', 'Files'],
       items: [
-        ['doc', 'blue', 'DOC', '文档'], ['xls', 'green', 'XLS', '表格'], ['ppt', 'orange', 'PPT', '演示'],
-        ['pdf', 'red', 'PDF', 'PDF'], ['txt', 'gray', 'TXT', '文本'], ['md', 'slate', 'MD', 'Markdown'],
-        ['zip', 'yellow', 'ZIP', '压缩包'], ['code', 'teal', null, '代码', 'code'], ['image', 'pink', null, '图片', 'image'],
-        ['audio', 'purple', null, '音频', 'music'], ['video', 'red', null, '视频', 'video'], ['data', 'indigo', 'DATA', '数据'],
-      ].map(([id, c, label, name, g]) => ({ id: `file-${id}`, name, svg: file(c, label, g) })),
+        ['doc', 'blue', 'DOC', '文档', 'Document'], ['xls', 'green', 'XLS', '表格', 'Spreadsheet'],
+        ['ppt', 'orange', 'PPT', '演示', 'Presentation'], ['pdf', 'red', 'PDF', 'PDF', 'PDF'],
+        ['txt', 'gray', 'TXT', '文本', 'Text'], ['md', 'slate', 'MD', 'Markdown', 'Markdown'],
+        ['zip', 'yellow', 'ZIP', '压缩包', 'Archive'], ['code', 'teal', null, '代码', 'Code', 'code'],
+        ['image', 'pink', null, '图片', 'Image', 'image'], ['audio', 'purple', null, '音频', 'Audio', 'music'],
+        ['video', 'red', null, '视频', 'Video', 'video'], ['data', 'indigo', 'DATA', '数据', 'Data'],
+      ].map(([id, c, label, zh, en, g]) => ({ id: `file-${id}`, name: [zh, en], svg: file(c, label, g) })),
     },
     {
-      title: '应用',
+      title: ['应用', 'Apps'],
       items: [
-        ['globe', 'blue', '浏览器'], ['terminal', 'slate', '终端'], ['settings', 'gray', '设置'], ['game', 'indigo', '游戏'],
-        ['chat', 'green', '聊天'], ['mail', 'sky', '邮件'], ['music', 'pink', '音乐'], ['camera', 'orange', '相机'],
-        ['chart', 'teal', '数据'], ['calendar', 'red', '日历'], ['edit', 'yellow', '笔记'], ['lock', 'purple', '安全'],
-        ['bolt', 'orange', '工具'], ['home', 'blue', '主页'], ['cloud', 'sky', '云'], ['archive', 'gray', '归档'],
-      ].map(([g, c, name]) => ({ id: `app-${g}`, name, svg: tile(c, g) })),
+        ['globe', 'blue', '浏览器', 'Browser'], ['terminal', 'slate', '终端', 'Terminal'], ['settings', 'gray', '设置', 'Settings'],
+        ['game', 'indigo', '游戏', 'Games'], ['chat', 'green', '聊天', 'Chat'], ['mail', 'sky', '邮件', 'Mail'],
+        ['music', 'pink', '音乐', 'Music'], ['camera', 'orange', '相机', 'Camera'], ['chart', 'teal', '数据', 'Data'],
+        ['calendar', 'red', '日历', 'Calendar'], ['edit', 'yellow', '笔记', 'Notes'], ['lock', 'purple', '安全', 'Security'],
+        ['bolt', 'orange', '工具', 'Tools'], ['home', 'blue', '主页', 'Home'], ['cloud', 'sky', '云', 'Cloud'],
+        ['archive', 'gray', '归档', 'Archive'],
+      ].map(([g, c, zh, en]) => ({ id: `app-${g}`, name: [zh, en], svg: tile(c, g) })),
     },
   ];
 
